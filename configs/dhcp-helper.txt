@@ -1,0 +1,4 @@
+! On each distribution SVI
+interface vlan 13
+ ip helper-address <dhcp-server-ip>
+! Pool naming: site-name-VLANID, e.g. HQ-VLAN13

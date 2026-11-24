@@ -1,0 +1,16 @@
+! Loopback, EtherChannel and OSPF pattern (use your own transit subnets)
+ip routing
+interface loopback 0
+ ip address 192.168.0.0 255.255.255.255
+interface port-channel 1
+ no switchport
+ ip address <core-to-core-/30> 
+interface range gi0/0-1
+ no switchport
+ channel-group 1 mode active
+router ospf 1
+ router-id 192.168.0.0
+ network 192.168.0.0 0.0.0.0 area 0
+ network <each-transit-/30> 0.0.0.3 area 0
+ auto-cost reference-bandwidth 100000
+ passive-interface <links-to-access-layer>
