@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 7: Troubleshooting Log | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 7: Troubleshooting Log</h1><p><small>Series: Enterprise Multi-Site Campus Network on GNS3. Part 7 of 8.</small></p>
+<p>Most of what I learned came from things that did not work. Each entry has the symptom, what I first thought, the real cause and the fix.</p>
+<table><tr><th>#</th><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>1</td><td>Root Guard block messages and HSRP flapping</td><td>Root Guard on distribution downlinks blocked ports when BPDUs from the peer switch came through the access layer, causing topology change storms</td><td>Removed Root Guard from distribution downlinks; kept PortFast and BPDU Guard on access ports</td></tr>
+<tr><td>2</td><td>Loop protection not working on access ports</td><td>BPDU Filter combined with BPDU Guard: the filter drops BPDUs before the guard sees them</td><td>Removed BPDU Filter</td></tr>
+<tr><td>3</td><td>OSPF neighbour does not form on a /30 link</td><td>Wildcard mask 0.0.0.0 matched one exact address, not the subnet</td><td>Used 0.0.0.3 for /30 links</td></tr>
+<tr><td>4</td><td>OSPF dead-timer expirations</td><td>A switch used a network address as its router ID</td><td>Set a unique /32 loopback router ID on every device</td></tr>
+<tr><td>5</td><td>Command rejected on port-channel for OSPF point-to-point</td><td>Simulator limitation on logical interfaces</td><td>Left the default broadcast type</td></tr>
+<tr><td>6</td><td>EtherChannel member suspended (vlan mask is different)</td><td>Physical port settings did not match the port-channel</td><td>Add the channel group first, then configure the port-channel</td></tr>
+<tr><td>7</td><td>VLAN 40 missing from spanning tree</td><td>Found when checking STP roots against HSRP</td><td>Added VLAN 40 to the priority command</td></tr>
+<tr><td>8</td><td>Ping between VLANs failed</td><td>Typo in the destination address</td><td>Re-checked addressing before touching configuration</td></tr></table>
+<h2>My troubleshooting order</h2>
+<ol><li><b>Layer 2 first</b> when HSRP and OSPF flap together: check logs for SPANTREE and err-disable messages, then root bridge placement, then guard placement.</li>
+<li><b>OSPF adjacency:</b> interface status and subnet, router ID, area and wildcard, network type and timers, then neighbour state. INIT usually means Hello is one-way; EXSTART or LOADING suggests an MTU mismatch or duplicate router ID.</li>
+<li><b>HSRP:</b> check the inter-distribution trunk, SVI state, then compare group, virtual IP and priority on both switches with <code>show standby brief</code>.</li>
+<li><b>Data plane:</b> check the typed addresses first, then <code>show ip route</code> for the destination, then CEF.</li></ol>
+<h2>Trunk pruning question</h2>
+<p>Pruning trunks to only floor VLANs looked like a fix for unicast flooding, but staff who work on another floor would lose access. The modern answer is dynamic VLAN assignment with 802.1X, RADIUS and identity-based policy, which I list on the roadmap.</p>
+
+<div class="nav"><a href="part-6-dhcp.html">&laquo; Part 6: DHCP and IP Helper</a><a href="part-8-roadmap.html">Part 8: Status and Roadmap &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>

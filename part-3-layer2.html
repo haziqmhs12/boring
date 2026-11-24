@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+ | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</h1><p><small>Series: Enterprise Multi-Site Campus Network on GNS3. Part 3 of 8.</small></p>
+<h2>Access layer</h2>
+<p>Each floor has one access switch and each floor holds one department, so each floor has its own department VLAN. The VLANs for voice, IoT, physical security, CCTV, guest and management are on every access switch, because those devices are on every floor. Endpoint ports are set to access mode in their VLAN, and unused ports go to the parking VLAN (999).</p>
+<pre><code>vlan 10
+ name HQ-Admin
+! repeat for each VLAN in the design
+interface range fa0/1-24
+ switchport mode access
+ switchport access vlan X
+ switchport nonegotiate
+ spanning-tree portfast
+ spanning-tree bpduguard enable</code></pre>
+<h2>Trunks</h2>
+<p>Links between access and distribution are 802.1Q trunks. I allow only the VLANs that exist in the design and turn off DTP so a link is always a trunk and never negotiates. The native VLAN is 999.</p>
+<p>On the switch model I used, the trunk encapsulation must be set to dot1q before the port can be forced to trunk mode, otherwise the switch rejects the command. The same cause makes <code>switchport nonegotiate</code> fail with a conflict between nonegotiate and dynamic mode.</p>
+<h2>Spanning tree: Rapid PVST+</h2>
+<p>Redundant links between access and distribution switches create loops, and Layer 2 frames have no TTL. Spanning tree blocks redundant ports and unblocks them when an active link fails. I chose Rapid PVST+ because the lab has few VLANs, convergence is much faster than classic PVST+, and each VLAN can have its own root.</p>
+<p>Making one distribution switch the root for every VLAN wastes the other switch. I split the VLANs, so each distribution switch is root for half of them and secondary for the rest:</p>
+<pre><code>spanning-tree mode rapid-pvst
+spanning-tree vlan 11,13,30,50,99 priority 4096
+spanning-tree vlan 10,12,40,60,70 priority 8192</code></pre>
+<p>Use the opposite priorities on the second switch. The rule I follow: the STP root for a VLAN must also be the HSRP active gateway for that VLAN, otherwise traffic takes a detour (see <a href="part-4-hsrp.html">Part 4</a>).</p>
+<h2>EtherChannel between distribution switches</h2>
+<p>The two distribution switches are joined by a LACP EtherChannel so one cable failure does not split them. A port joins the channel only if its settings match the port-channel, so configure the channel group first and apply the trunk settings to the port-channel interface afterwards.</p>
+<pre><code>interface range gi0/2-3
+ channel-group 1 mode active
+interface port-channel 1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport nonegotiate</code></pre>
+<figure><img src="images/l2-spanning-tree.png" alt="show spanning-tree summary on a distribution switch (replace with your GNS3 output)" onerror="this.outerHTML='<div class=fig>Screenshot to add: images/l2-spanning-tree.png<br>show spanning-tree summary on a distribution switch (replace with your GNS3 output)</div>'"><figcaption>show spanning-tree summary on a distribution switch (replace with your GNS3 output)</figcaption></figure>
+
+<div class="nav"><a href="part-2-addressing.html">&laquo; Part 2: IP Addressing and Capacity Planning</a><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 1: Introduction and Topology | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 1: Introduction and Topology</h1>
+<p>This series documents a lab I am building to design and implement the network of a fictional multi-site supermarket chain: a corporate headquarters campus, a server block, and two shopping-mall branches. I started it as a personal project to practise what a network engineer does on a real deployment: plan the addressing, build the layers, test failover, and write everything down so someone else can maintain it.</p>
+<p>I first built the design in Cisco Packet Tracer. Packet Tracer limited what I could configure, so I moved the build to GNS3 and run real Cisco device images. The configuration notes in this series started in Packet Tracer and are being rebuilt and re-verified on GNS3 as I go. The project is still in progress, and <a href="part-8-roadmap.html">Part 8</a> says exactly what is finished and what is not.</p>
+<h2>Series</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol>
+<h2>The company</h2>
+<p>A supermarket chain has two main business risks: downtime at the checkouts and a security breach through low-cost IoT devices or public Wi-Fi. The design priorities follow from that: isolation between device types, redundancy at every layer, and address space that can grow without renumbering.</p>
+<h2>Topology</h2>
+<figure><img src="images/topology.png" alt="Logical topology: HQ three-tier campus, server block and branch sites" onerror="this.outerHTML='<div class=fig>Screenshot to add: images/topology.png<br>Logical topology: HQ three-tier campus, server block and branch sites</div>'"><figcaption>Logical topology: HQ three-tier campus, server block and branch sites</figcaption></figure>
+<p>Each site follows a campus design. Floors have their own access switch, which connects to two Layer 3 distribution switches, which connect to a Layer 3 core. The server block uses its own pair of distribution switches in a collapsed design and connects to the core. The HQ design continues with an internal firewall (optional), an edge router and a perimeter firewall towards the internet and the branches.</p>
+<h2>Devices</h2>
+<table><tr><th>Role</th><th>Names in the lab</th><th>Function</th></tr>
+<tr><td>Core</td><td>CORE-SW1, CORE-SW2</td><td>Layer 3 backbone, EtherChannel between the two cores</td></tr>
+<tr><td>Distribution</td><td>DIST-SW1, DIST-SW2</td><td>Inter-VLAN routing, HSRP gateways, DHCP relay, STP root</td></tr>
+<tr><td>Server distribution</td><td>DIST_SR_SW1, DIST_SR_SW2</td><td>HSRP gateways for the server VLAN</td></tr>
+<tr><td>Access</td><td>One switch per floor</td><td>Access ports, PortFast, BPDU Guard</td></tr></table>
+<div class="note">Add the exact image names and versions you run in GNS3 here (for example the switch and router images), the host hardware, and how many CPU cores and how much RAM the GNS3 VM uses.</div>
+<h2>Configuration files</h2>
+<ul><li><a href="configs/distribution-layer.txt">Distribution layer: VLANs, STP, HSRP</a></li><li><a href="configs/access-layer.txt">Access layer</a></li><li><a href="configs/core-ospf.txt">Core and distribution: loopback, EtherChannel, OSPF</a></li><li><a href="configs/dhcp-helper.txt">DHCP relay</a></li></ul>
+<p>Credentials, hostnames and addresses in the lab are for training only.</p>
+
+<div class="nav"><span></span><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>

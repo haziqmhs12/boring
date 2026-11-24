@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 2: IP Addressing and Capacity Planning | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 2: IP Addressing and Capacity Planning</h1><p><small>Series: Enterprise Multi-Site Campus Network on GNS3. Part 2 of 8.</small></p>
+<h2>Address plan</h2>
+<table><tr><th>Block</th><th>Use</th></tr>
+<tr><td>10.0.0.0/8</td><td>Parent supernet for users and endpoints</td></tr>
+<tr><td>10.0.0.0/18</td><td>HQ users</td></tr>
+<tr><td>10.0.0.0/20</td><td>Branch block carved out of the HQ supernet</td></tr>
+<tr><td>172.16.0.0/12</td><td>Servers</td></tr>
+<tr><td>192.168.0.0/24</td><td>Loopbacks, one /32 per Layer 3 device, shared by HQ and branches</td></tr>
+<tr><td>192.168.10.0/24</td><td>Out-of-band management (VLAN 99) at HQ, with separate ranges for branches</td></tr>
+<tr><td>Transit block</td><td>Point-to-point links between Layer 3 devices, split into /30 subnets</td></tr></table>
+<p>I use /30 for transit links because /31 is the usual choice on point-to-point links but not every device supports it, and my first simulator did not.</p>
+<h2>Sparse allocation</h2>
+<p>Instead of packing sites tightly, I leave a full block free between sites. If a branch grows, it can expand into its own gap without overlapping the next site or rewriting summary routes.</p>
+<h2>Why separate loopback, management and transit ranges</h2>
+<p>Early on I combined these into one subnet because I did not understand the differences. They do different jobs: a loopback is a virtual interface that stays up even when a physical link fails, and is used as the OSPF router ID and as tunnel endpoint. An out-of-band management network carries SSH and SNMP to devices. Transit links only connect routers. Separating them keeps management reachable when data links fail and keeps routing tables clean.</p>
+<h2>Sizing subnets</h2>
+<p>I size each VLAN with a simple rule:</p>
+<pre><code>Total IPs = current devices x 1.5 x 1.2</code></pre>
+<p>The 1.5 factor covers overlapping DHCP leases, for example when a device leaves but keeps its lease for hours. The 1.2 factor adds 20 percent growth. Examples from the design:</p>
+<table><tr><th>Network</th><th>Devices</th><th>Needed</th><th>Subnet</th></tr>
+<tr><td>Branch IoT</td><td>130</td><td>234</td><td>/24 (254 hosts)</td></tr>
+<tr><td>HQ voice</td><td>160</td><td>288</td><td>/23 (510 hosts)</td></tr></table>
+<p>Guest Wi-Fi follows turnover instead of headcount, so for guest networks I also add the arrival rate and the DHCP lease time to the count of active leases. A busy store can exceed 254 shoppers over a few hours, so the branch guest VLAN is a /23.</p>
+<h2>HQ VLANs and subnets</h2>
+<table><tr><th>VLAN</th><th>Name</th><th>SVI subnet</th><th>HSRP gateway</th></tr>
+<tr><td>10</td><td>HQ-Admin</td><td>10.0.11.0/25</td><td>10.0.11.1</td></tr>
+<tr><td>11</td><td>HQ-Finance</td><td>10.0.12.0/25</td><td>10.0.12.1</td></tr>
+<tr><td>12</td><td>HQ-Logistics</td><td>10.0.4.0/24</td><td>10.0.4.1</td></tr>
+<tr><td>13</td><td>HQ-IT_ENG</td><td>10.0.6.0/24</td><td>10.0.6.1</td></tr>
+<tr><td>30</td><td>HQ-Voice</td><td>10.0.0.0/23</td><td>10.0.0.1</td></tr>
+<tr><td>40</td><td>HQ-IoT</td><td>10.0.13.128/26</td><td>10.0.13.129</td></tr>
+<tr><td>50</td><td>HQ-PhysSec</td><td>10.0.13.0/25</td><td>10.0.13.1</td></tr>
+<tr><td>60</td><td>HQ-CCTV</td><td>10.0.10.0/24</td><td>10.0.10.1</td></tr>
+<tr><td>70</td><td>HQ-Guest</td><td>10.0.8.0/24</td><td>10.0.8.1</td></tr>
+<tr><td>99</td><td>HQ-MGMT</td><td>192.168.10.0/24</td><td>192.168.10.1</td></tr>
+<tr><td>999</td><td>Parking (unused ports, native VLAN)</td><td>none</td><td>none</td></tr></table>
+<p>Voice, guest Wi-Fi, IoT, IP cameras, door access control and management each have their own VLAN. If a cheap IoT device is compromised, it cannot reach the camera streams or door controllers, because they are separate broadcast domains.</p>
+<div class="note">Check this table against your final GNS3 configuration before publishing, because the VLAN numbers and masks changed during the project.</div>
+
+<div class="nav"><a href="index.html">&laquo; Part 1: Introduction and Topology</a><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+ &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>

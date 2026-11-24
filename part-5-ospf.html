@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 5: Layer 3 Routing with OSPF | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 5: Layer 3 Routing with OSPF</h1><p><small>Series: Enterprise Multi-Site Campus Network on GNS3. Part 5 of 8.</small></p>
+<p>Only the core and distribution switches run OSPF. Links down to the access layer are passive, so no neighbours form there.</p>
+<h2>Loopbacks and router IDs</h2>
+<p>Each Layer 3 device has a loopback /32 from 192.168.0.0/24, and I set the OSPF router ID to that address explicitly. If the router ID is not set, OSPF picks the highest loopback or interface address, and the ID can change when an interface fails.</p>
+<pre><code>interface loopback 0
+ ip address 192.168.0.2 255.255.255.255
+router ospf 1
+ router-id 192.168.0.2
+ network 192.168.0.2 0.0.0.0 area 0
+ network &lt;transit-subnet&gt; 0.0.0.3 area 0
+ auto-cost reference-bandwidth 100000
+ passive-interface &lt;links towards access layer&gt;</code></pre>
+<h2>Design decisions</h2>
+<ul><li>Point-to-point transit links use /30 subnets, so no DR election occurs on them.</li>
+<li>The trunk between the two distribution switches is Layer 2 only, so those two switches do not form an OSPF adjacency with each other. Each one has two Layer 3 uplinks to both cores, which is enough.</li>
+<li>The port-channel between the cores stays in default broadcast mode, which shows FULL/DR and FULL/BDR and is normal.</li>
+<li>For routing the reference bandwidth was raised with <code>auto-cost reference-bandwidth 100000</code>.</li></ul>
+<h2>Verification</h2>
+<p>Commands I use, in order: <code>show ip interface brief</code>, <code>show ip ospf</code>, <code>show ip ospf neighbor</code>, <code>show ip route</code>.</p>
+<figure><img src="images/ospf-neighbors.png" alt="show ip ospf neighbor with all adjacencies in FULL (replace with your GNS3 output)" onerror="this.outerHTML='<div class=fig>Screenshot to add: images/ospf-neighbors.png<br>show ip ospf neighbor with all adjacencies in FULL (replace with your GNS3 output)</div>'"><figcaption>show ip ospf neighbor with all adjacencies in FULL (replace with your GNS3 output)</figcaption></figure>
+<p>The server block is joined to the same area: OSPF from HQ to the server distribution pair came up and HSRP works on the server VLAN.</p>
+
+<div class="nav"><a href="part-4-hsrp.html">&laquo; Part 4: First-Hop Redundancy with HSRP</a><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>

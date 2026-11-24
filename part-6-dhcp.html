@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Part 6: DHCP and IP Helper | Enterprise Campus Network Lab</title><style>body{font-family:Georgia,'Times New Roman',serif;line-height:1.65;color:#222;margin:0;background:#f6f6f4}
+header{background:#1f2d3d;color:#fff;padding:18px 0}header .w,main,footer .w{max-width:860px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold;font-size:18px}
+header small{display:block;font-family:Arial,sans-serif;color:#b9c4d0;font-size:13px;margin-top:2px}
+main{background:#fff;padding:28px 36px;margin-top:20px;border:1px solid #ddd}
+h1{font-family:Arial,sans-serif;font-size:28px;margin-top:0}h2{font-family:Arial,sans-serif;font-size:21px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+h3{font-family:Arial,sans-serif;font-size:17px}
+a{color:#0b5cad}pre{background:#f1f3f5;border:1px solid #d9dde1;padding:12px;overflow-x:auto;font-size:13px;line-height:1.45}
+code{font-family:Consolas,Menlo,monospace;font-size:13px}table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;margin:12px 0}
+th,td{border:1px solid #d5d5d5;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef1f4}
+.fig{border:2px dashed #b8c0c8;background:#fafbfc;padding:26px 14px;text-align:center;color:#667;font-family:Arial,sans-serif;font-size:13px;margin:16px 0}
+figure{margin:16px 0}figure img{max-width:100%;border:1px solid #ccc}figcaption{font-size:13px;color:#555;text-align:center;font-family:Arial,sans-serif}
+.note{border-left:4px solid #c98a00;background:#fff8e6;padding:8px 14px;margin:16px 0;font-family:Arial,sans-serif;font-size:14px}
+.nav{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:14px;margin-top:34px;padding-top:14px;border-top:1px solid #ddd}
+.toc li{margin:3px 0}footer{padding:18px 0;color:#667;font-family:Arial,sans-serif;font-size:13px}</style></head><body>
+<header><div class="w"><a href="index.html">Enterprise Multi-Site Campus Network Lab</a><small>Haziq | Network engineering portfolio | <a href="https://github.com/haziqmhs12/boring" style="font-weight:normal;font-size:13px;text-decoration:underline">GitHub</a></small></div></header>
+<main><h1>Part 6: DHCP and IP Helper</h1><p><small>Series: Enterprise Multi-Site Campus Network on GNS3. Part 6 of 8.</small></p>
+<p>VLAN clients broadcast a DHCP discover, and broadcasts do not cross subnets. A central DHCP server in the server block cannot hear them, so the distribution switches relay them.</p>
+<h2>How the relay works</h2>
+<p>With <code>ip helper-address</code> on a VLAN interface, the switch turns the broadcast into a unicast to the DHCP server, replaces the source with the SVI address and adds the gateway address so the server knows which pool to use. I configure it on the distribution layer because that is where each VLAN ends and routing begins.</p>
+<pre><code>interface vlan 13
+ ip helper-address &lt;dhcp-server-ip&gt;</code></pre>
+<h2>Pools</h2>
+<p>Before creating pools I list every subnet with its mask, gateway (the HSRP virtual IP where one exists), reserved range and first address to hand out. Pools are named site-name-VLANID, for example HQ-VLAN13.</p>
+<h2>Result</h2>
+<p>A PC in VLAN 13 received an address, mask and gateway from the central server across the routed network.</p>
+<figure><img src="images/dhcp-vlan13.png" alt="PC in VLAN 13 receiving a lease (replace with your GNS3 output)" onerror="this.outerHTML='<div class=fig>Screenshot to add: images/dhcp-vlan13.png<br>PC in VLAN 13 receiving a lease (replace with your GNS3 output)</div>'"><figcaption>PC in VLAN 13 receiving a lease (replace with your GNS3 output)</figcaption></figure>
+
+<div class="nav"><a href="part-5-ospf.html">&laquo; Part 5: Layer 3 Routing with OSPF</a><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log &raquo;</a></div>
+<h2>All parts</h2><ol class="toc" style="list-style:none;padding:0"><li><a href="index.html">Part 1: Introduction and Topology</a></li><li><a href="part-2-addressing.html">Part 2: IP Addressing and Capacity Planning</a></li><li><a href="part-3-layer2.html">Part 3: Layer 2: VLANs, Trunks, EtherChannel, Rapid PVST+</a></li><li><a href="part-4-hsrp.html">Part 4: First-Hop Redundancy with HSRP</a></li><li><a href="part-5-ospf.html">Part 5: Layer 3 Routing with OSPF</a></li><li><a href="part-6-dhcp.html">Part 6: DHCP and IP Helper</a></li><li><a href="part-7-troubleshooting.html">Part 7: Troubleshooting Log</a></li><li><a href="part-8-roadmap.html">Part 8: Status and Roadmap</a></li></ol></main>
+<footer><div class="w">Lab project by Haziq. Built for learning; not a production design.</div></footer></body></html>
